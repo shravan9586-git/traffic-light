@@ -2,149 +2,86 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Image Upload & Live Camera</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Image Upload & Camera Feed</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-    <div class="container">
-        <h1>Image Upload & Camera Feed System</h1>
-        
-        <!-- Image Upload Section -->
-        <div class="section">
-            <h2>Upload Image</h2>
-            <form id="uploadForm" enctype="multipart/form-data">
-                <input type="file" id="imageInput" name="image" accept="image/*" required>
-                <button type="submit" class="btn">Upload Image</button>
-            </form>
-            
-            <div id="uploadStatus" class="status-message"></div>
-            
-            <!-- Image Preview Section -->
-            <div id="imagePreview" class="preview-container">
-                <h3>Uploaded Image Preview</h3>
-                <img id="previewImg" src="" alt="Preview will appear here" style="display: none;">
-                <p id="previewPlaceholder">No image uploaded yet</p>
-            </div>
-        </div>
 
-        <!-- Live Camera Feed Section -->
-        <div class="section">
-            <h2>Live Camera Feed</h2>
-            <div class="video-container">
-                <img id="videoFeed" src="{{ url_for('video') }}" alt="Live Camera Feed">
-            </div>
+<div class="container">
+    <h1>📷 Image Upload & Live Camera Feed</h1>
+
+    <!-- Upload Section -->
+    <div class="section">
+        <h2>Upload Image</h2>
+
+        <form id="uploadForm" enctype="multipart/form-data">
+            <input type="file" id="imageInput" name="image" accept="image/*" required>
+            <button type="submit">Upload</button>
+        </form>
+
+        <div id="uploadStatus" class="status"></div>
+
+        <div class="preview">
+            <h3>Image Preview</h3>
+            <img id="previewImg" />
+            <p id="placeholder">No image uploaded</p>
         </div>
     </div>
 
-    <script>
-        // Get DOM elements
-        const uploadForm = document.getElementById('uploadForm');
-        const imageInput = document.getElementById('imageInput');
-        const uploadStatus = document.getElementById('uploadStatus');
-        const previewImg = document.getElementById('previewImg');
-        const previewPlaceholder = document.getElementById('previewPlaceholder');
+    <!-- Camera Section -->
+    <div class="section">
+        <h2>Live Camera Feed</h2>
+        <div class="video-box">
+            <img src="{{ url_for('video') }}" alt="Camera Feed">
+        </div>
+    </div>
+</div>
 
-        // Handle form submission
-        uploadForm.addEventListener('submit', async (e) => {
-            e.preventDefault(); // Prevent page reload
-            
-            // Check if file is selected
-            if (!imageInput.files || imageInput.files.length === 0) {
-                showStatus('Please select an image file', 'error');
-                return;
-            }
-            
-            // Create FormData object
-            const formData = new FormData();
-            formData.append('image', imageInput.files[0]);
-            
-            try {
-                // Show loading message
-                showStatus('Uploading image...', 'loading');
-                
-                // Send fetch request to backend
-                const response = await fetch('/upload-image', {
-                    method: 'POST',
-                    body: formData
-                });
-                
-                // Parse JSON response
-                const data = await response.json();
-                
-                if (response.ok) {
-                    // Success
-                    showStatus(data.message || 'Image uploaded successfully!', 'success');
-                    
-                    // Display uploaded image
-                    displayImage(data.filename);
-                } else {
-                    // Error from server
-                    showStatus(data.error || 'Upload failed', 'error');
-                }
-                
-            } catch (error) {
-                // Network or other errors
-                console.error('Upload error:', error);
-                showStatus('Error uploading image. Please try again.', 'error');
-            }
+<script>
+const form = document.getElementById("uploadForm");
+const input = document.getElementById("imageInput");
+const status = document.getElementById("uploadStatus");
+const img = document.getElementById("previewImg");
+const placeholder = document.getElementById("placeholder");
+
+form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+
+    const file = input.files[0];
+    if (!file) return;
+
+    const data = new FormData();
+    data.append("image", file);
+
+    status.textContent = "Uploading...";
+    status.className = "status loading";
+
+    try {
+        const res = await fetch("/upload-image", {
+            method: "POST",
+            body: data
         });
 
-        // Show status message
-        function showStatus(message, type) {
-            uploadStatus.textContent = message;
-            uploadStatus.className = 'status-message ' + type;
-            uploadStatus.style.display = 'block';
-            
-            // Auto-hide after 5 seconds for success messages
-            if (type === 'success') {
-                setTimeout(() => {
-                    uploadStatus.style.display = 'none';
-                }, 5000);
-            }
-        }
+        const result = await res.json();
 
-        // Display uploaded image
-        function displayImage(filename) {
-            // Hide placeholder
-            previewPlaceholder.style.display = 'none';
-            
-            // Show and set image source
-            previewImg.src = `/uploads/${filename}`;
-            previewImg.style.display = 'block';
-            
-            // Handle image load error
-            previewImg.onerror = () => {
-                showStatus('Error loading image preview', 'error');
-                previewImg.style.display = 'none';
-                previewPlaceholder.style.display = 'block';
-            };
-        }
+        if (res.ok) {
+            status.textContent = result.message;
+            status.className = "status success";
 
-        // Optional: Preview image before upload
-        imageInput.addEventListener('change', (e) => {
-            const file = e.target.files[0];
-            
-            if (file) {
-                // Check if it's an image
-                if (!file.type.startsWith('image/')) {
-                    showStatus('Please select an image file', 'error');
-                    imageInput.value = '';
-                    return;
-                }
-                
-                // Create preview using FileReader
-                const reader = new FileReader();
-                
-                reader.onload = (event) => {
-                    previewPlaceholder.style.display = 'none';
-                    previewImg.src = event.target.result;
-                    previewImg.style.display = 'block';
-                };
-                
-                reader.readAsDataURL(file);
-            }
-        });
-    </script>
+            img.src = `/uploads/${result.filename}`;
+            img.style.display = "block";
+            placeholder.style.display = "none";
+        } else {
+            status.textContent = result.error;
+            status.className = "status error";
+        }
+    } catch {
+        status.textContent = "Upload failed";
+        status.className = "status error";
+    }
+});
+</script>
+
 </body>
 </html>
