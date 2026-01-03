@@ -5,7 +5,8 @@ from werkzeug.utils import secure_filename
 
 app=Flask(__name__)
 
-cap = cv2.VideoCapture("http://192.168.1.28:8080/video",cv2.CAP_FFMPEG)
+camera=0
+cap = cv2.VideoCapture(camera,cv2.CAP_FFMPEG)
 
 UPLOAD_FOLDER='uploads'
 ALLOWED_EXTENSIONS={'png','jpg','jpeg','gif'}
@@ -18,21 +19,37 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.',1)[1].lower() in ALLOWED_EXTENSIONS
 
 def generate():
+    global cap
     while True:
         if not cap.isOpened():
             print(" IP Camera not reachable")
-            break
+            continue
 
         ret, frame = cap.read()
         if not ret:
             print(" Frame not received, retrying...")
-            break
+            continue
 
         ret, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
 
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+@app.route('/set-camera',methods=['POST'])
+def set_camera():
+    global cap,camera
+    data=request.json
+    new=data.get('camera')
+
+    if not new:
+        return jsonify({'error':'no source provide'}),400
+    
+    cap.release()
+    camera=new
+    cap=cv2.VideoCapture(camera,cv2.CAP_FFMPEG)
+
+    return jsonify({'message':'camera source update'})
 
 
 @app.route('/')

@@ -11,12 +11,13 @@
 <div class="container">
     <h1>📷 Image Upload & Live Camera Feed</h1>
 
-    <!-- Upload Section -->
     <div class="section">
         <h2>Upload Image</h2>
 
         <form id="uploadForm" enctype="multipart/form-data">
             <input type="file" id="imageInput" name="image" accept="image/*" required>
+            <input type="text" id="ipchange" placeholder="Change IP Webcame Address">
+            <button type="button" onclick="changeIP()">Change IP</button>
             <button type="submit">Upload</button>
         </form>
 
@@ -29,11 +30,11 @@
         </div>
     </div>
 
-    <!-- Camera Section -->
     <div class="section">
         <h2>Live Camera Feed</h2>
         <div class="video-box">
-            <img src="{{ url_for('video') }}" alt="Camera Feed">
+            <img src="{{ url_for('video') }}" alt="Camera Feed" id="video">
+            <button onclick="rotate()" class="btn1">Rotate</button>
         </div>
     </div>
 </div>
@@ -44,6 +45,26 @@ const input = document.getElementById("imageInput");
 const status = document.getElementById("uploadStatus");
 const img = document.getElementById("previewImg");
 const placeholder = document.getElementById("placeholder");
+let rotation = 0;
+
+function rotate(){
+    rotation = (rotation + 90) % 360;
+    document.getElementById("video").style.transform = `rotate(${rotation}deg)`;
+}
+
+function changeIP(){
+    const ip=document.getElementById("ipchange").value;
+    fetch('/set-camera',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({camera:ip})
+    })
+    .then(res=>res.json())
+    .then(data=>{
+        alert(data.message);
+    })
+    .catch(err=>console.error(err))
+}
 
 form.addEventListener("submit", async (e) => {
     e.preventDefault();
