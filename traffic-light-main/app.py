@@ -2,13 +2,14 @@ from flask import Flask,render_template,Response,request,jsonify,send_from_direc
 import cv2
 import os
 from werkzeug.utils import secure_filename
+from datetime import datetime
 
 app=Flask(__name__)
 
 camera=0
 cap = cv2.VideoCapture(camera,cv2.CAP_FFMPEG)
 
-UPLOAD_FOLDER='uploads'
+UPLOAD_FOLDER=os.path.join(os.path.dirname(__file__), 'uploads')
 ALLOWED_EXTENSIONS={'png','jpg','jpeg','gif'}
 
 app.config['UPLOAD_FOLDER']=UPLOAD_FOLDER
@@ -29,9 +30,25 @@ def generate():
         if not ret:
             print(" Frame not received, retrying...")
             continue
+        # 1. Get current date and time
+        now = datetime.now()
+        current_time = now.strftime("%d-%m-%Y %H:%M:%S")
 
-        ret, buffer = cv2.imencode('.jpg', frame)
-        frame = buffer.tobytes()
+        # 2. Setup font settings
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        position = (50, 60)  
+        font_scale = 2
+        color = (0,0,255)
+        thickness = 2
+
+        # 3. Draw black background for text (Optional, for better readability)
+        #cv2.rectangle(frame, (10, 15), (400, 60), (0, 0, 0), -1)
+
+        #put text on the frame
+        cv2.putText(frame, current_time, position, font, font_scale, color, thickness, cv2.LINE_AA)
+
+        ret, jpeg = cv2.imencode('.jpg', frame)
+        frame = jpeg.tobytes()
 
         yield (b'--frame\r\n'
                b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
@@ -56,6 +73,7 @@ def set_camera():
 def index():
     return render_template('index.html')
 
+
 @app.route('/video')
 def video():
     return Response(generate(),
@@ -63,8 +81,9 @@ def video():
 
 @app.route('/upload-image',methods=['POST'])
 def upload_image():
+    print("Upload called")
     if 'image' not in request.files:
-        return jsonify({'error':'no file apart'}),400
+        return jsonify({'error':'no file part'}),400
     file=request.files['image']
 
     if file.filename=='':

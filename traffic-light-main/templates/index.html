@@ -11,13 +11,13 @@
 <div class="container">
     <h1>📷 Image Upload & Live Camera Feed</h1>
 
+    <!-- SECTION 1: UPLOAD -->
     <div class="section">
         <h2>Upload Image</h2>
 
-        <form id="uploadForm" enctype="multipart/form-data">
+        <!-- Removed IP change fields from here -->
+        <form id="uploadForm" enctype="multipart/form-data" style="grid-template-columns: 1fr auto;">
             <input type="file" id="imageInput" name="image" accept="image/*" required>
-            <input type="text" id="ipchange" placeholder="Change IP Webcame Address">
-            <button type="button" onclick="changeIP()">Change IP</button>
             <button type="submit">Upload</button>
         </form>
 
@@ -30,30 +30,91 @@
         </div>
     </div>
 
+    <!-- SECTION 2: LIVE CAMERA -->
     <div class="section">
         <h2>Live Camera Feed</h2>
+
+        <!-- NEW LOCATION: IP Webcam Controls -->
+        <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 20px;">
+            <input type="text" id="ipchange" placeholder="Change IP Webcam Address" style="width: 60%;">
+            <button type="button" onclick="changeIP()">Change IP</button>
+        </div>
+
+        <!-- Wrapper for the video to ensure layout stability -->
         <div class="video-box">
-            <img src="{{ url_for('video') }}" alt="Camera Feed" id="video">
+            <div class="cam-frame" id="camFrame">
+                <img src="{{ url_for('video') }}" alt="Camera Feed" id="video">
+            </div>
             <button onclick="rotate()" class="btn1">Rotate</button>
         </div>
     </div>
 </div>
 
 <script>
+// --- UPLOAD ELEMENTS ---
 const form = document.getElementById("uploadForm");
 const input = document.getElementById("imageInput");
 const status = document.getElementById("uploadStatus");
-const img = document.getElementById("previewImg");
+const previewImg = document.getElementById("previewImg");
 const placeholder = document.getElementById("placeholder");
-let rotation = 0;
 
-function rotate(){
-    rotation = (rotation + 90) % 360;
-    document.getElementById("video").style.transform = `rotate(${rotation}deg)`;
+// --- LIVE VIDEO ELEMENTS ---
+let rotation = 0;
+const videoEl = document.getElementById("video");     // The Live Video Image
+const frameEl = document.getElementById("camFrame");  // The Wrapper Frame
+
+// --- ROTATION LOGIC ---
+function updateLayout() {
+    // 1. Get natural dimensions of the VIDEO (fallback to 300x400 if loading)
+    const nw = videoEl.naturalWidth || 300; 
+    const nh = videoEl.naturalHeight || 400;
+
+    // 2. Calculate scale to fit within 400px max width
+    const MAX_SIZE = 400; 
+    const scale = MAX_SIZE / Math.max(nw, nh); // Scale based on the largest side
+    
+    const finalW = nw * scale;
+    const finalH = nh * scale;
+
+    // 3. Set the size of the VIDEO element
+    videoEl.style.width = finalW + "px";
+    videoEl.style.height = finalH + "px";
+
+    // 4. Adjust the FRAME container
+    // If rotated 90 or 270 deg (Landscape orientation relative to frame), swap W and H
+    const isSideways = rotation % 180 !== 0;
+
+    if (isSideways) {
+        frameEl.style.width = finalH + "px";  
+        frameEl.style.height = finalW + "px"; 
+    } else {
+        frameEl.style.width = finalW + "px";
+        frameEl.style.height = finalH + "px";
+    }
+
+    // 5. Apply Rotation + Centering to VIDEO
+    // IMPORTANT: "translate(-50%, -50%)" keeps it centered in the frame
+    videoEl.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
 }
 
+function rotate() {
+    rotation = (rotation + 90) % 360;
+    updateLayout();
+}
+
+// Run layout update on load and resize
+videoEl.onload = updateLayout;
+window.addEventListener('load', updateLayout);
+window.addEventListener('resize', updateLayout);
+
+
+// --- UPLOAD LOGIC ---
 function changeIP(){
-    const ip=document.getElementById("ipchange").value;
+    let ip = document.getElementById("ipchange").value.trim();
+
+    if(ip&&!ip.startsWith("http")){
+        ip = `http://${ip}:8080/video`;
+    }
     fetch('/set-camera',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
@@ -62,6 +123,10 @@ function changeIP(){
     .then(res=>res.json())
     .then(data=>{
         alert(data.message);
+
+        const videoElement = document.getElementById("video");// Reload the video source to apply the change immediately without page refresh issues
+        const timestamp = new Date().getTime();// Prevent browser caching.
+        videoElement.src = "{{url_for('video')}}?t" + timestamp;
     })
     .catch(err=>console.error(err))
 }
@@ -90,8 +155,8 @@ form.addEventListener("submit", async (e) => {
             status.textContent = result.message;
             status.className = "status success";
 
-            img.src = `/uploads/${result.filename}`;
-            img.style.display = "block";
+            previewImg.src = `/uploads/${result.filename}`;
+            previewImg.style.display = "block";
             placeholder.style.display = "none";
         } else {
             status.textContent = result.error;
