@@ -1,11 +1,14 @@
 from flask import Flask,render_template,Response,request,jsonify,send_from_directory
 import cv2
 import os
+import time
 from werkzeug.utils import secure_filename
 from datetime import datetime
+from ultralytics import YOLO
 
 app=Flask(__name__)
 
+model = YOLO('yolo11n.pt')
 camera=0
 cap = cv2.VideoCapture(camera,cv2.CAP_FFMPEG)
 
@@ -21,52 +24,61 @@ def allowed_file(filename):
 
 def generate():
     global cap
+    frame_counter=0
+    frame_skip=3
     while True:
         if not cap.isOpened():
-            print(" IP Camera not reachable")
+            print("IP Camera not reachable")
+            time.sleep(1)
             continue
 
         ret, frame = cap.read()
         if not ret:
-            print(" Frame not received, retrying...")
+            print("Frame not received")
+            time.sleep(0.1)
             continue
-        # 1. Get current date and time
-        now = datetime.now()
-        current_time = now.strftime("%d-%m-%Y %H:%M:%S")
+        frame_counter += 1
+        if frame_counter % frame_skip != 0:
+            results = model(frame, imgsz=416)  # or 320
+            annotated_frame = results[0].plot()
 
-        # 2. Setup font settings
-        font = cv2.FONT_HERSHEY_SIMPLEX
-        position = (50, 60)  
-        font_scale = 2
-        color = (0,0,255)
-        thickness = 2
+        # Timestamp
+        current_time = datetime.now().strftime("%d-%m-%Y %H:%M:%S")
+        cv2.putText(
+            annotated_frame,
+            current_time,
+            (30, 50),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            1,
+            (0, 0, 255),
+            2,
+            cv2.LINE_AA
+        )
 
-        # 3. Draw black background for text (Optional, for better readability)
-        #cv2.rectangle(frame, (10, 15), (400, 60), (0, 0, 0), -1)
-
-        #put text on the frame
-        cv2.putText(frame, current_time, position, font, font_scale, color, thickness, cv2.LINE_AA)
-
-        ret, jpeg = cv2.imencode('.jpg', frame)
-        frame = jpeg.tobytes()
+        ret, jpeg = cv2.imencode('.jpg', annotated_frame)
+        frame_bytes = jpeg.tobytes()
 
         yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n')
 
-@app.route('/set-camera',methods=['POST'])
+@app.route('/set-camera', methods=['POST'])
 def set_camera():
-    global cap,camera
-    data=request.json
-    new=data.get('camera')
+    global cap, camera
+    data = request.json
+    new = data.get('camera')
 
-    if not new:
-        return jsonify({'error':'no source provide'}),400
-    
+    if new is None:
+        return jsonify({'error': 'no source provided'}), 400
+
     cap.release()
-    camera=new
-    cap=cv2.VideoCapture(camera,cv2.CAP_FFMPEG)
 
-    return jsonify({'message':'camera source update'})
+    try:
+        camera = int(new)
+    except:
+        camera = new
+
+    cap = cv2.VideoCapture(camera, cv2.CAP_FFMPEG)
+    return jsonify({'message': 'camera source updated'})
 
 
 @app.route('/')
