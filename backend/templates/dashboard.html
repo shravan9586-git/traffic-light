@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='dashboard.css') }}">
+</head>
+<body>
+
+<header>
+  <h2>Traffic Dashboard</h2>
+
+  <div class="menu-container">
+    <button class="menu-btn" onclick="toggleMenu()">☰ Menu</button>
+    
+    <div id="myDropdown" class="dropdown-content">
+      <div class="menu-item info">Logged in as: <b>{{ role }}</b></div>
+      <hr>
+      
+      {% if role in ['admin', 'manager'] %}
+      <button class="menu-item" onclick="openUserModal()">👤 Create New User</button>
+      {% endif %}
+
+      <button class="menu-item" onclick="toggleTheme()">🌓 Switch Theme</button>
+      <a href="/logout" class="menu-item logout">🚪 Logout</a>
+    </div>
+  </div>
+</header>
+
+<section class="layout">
+
+  <div class="hubs">
+    <h3>Hubs (Sorted by Traffic)</h3>
+
+    {% for id, hub in hubs %}
+    <div class="hub-card">
+      <div class="hub-info">
+        <b>{{ hub.name }}</b>
+        <span class="traffic-badge">Traffic: {{ hub.traffic }}</span>
+      </div>
+      
+      <div class="hub-actions">
+        <a href="/hub/{{ id }}">Open</a>
+        {% if role in ["manager", "admin"] %}
+        <button class="del-btn" onclick="deleteHub('{{ id }}')">Delete</button>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+
+    {% if role == "admin" %}
+    <div class="hub-card add-hub-row" onclick="openHubModal()">
+      <span>+ Add New Hub</span>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="users">
+    {% if role == 'manager' %}
+        <h3>My Active Team</h3>
+    {% elif role == 'admin' %}
+        <h3>System Managers</h3>
+    {% else %}
+        <h3>Team Status</h3>
+    {% endif %}
+
+    <ul>
+      {% for u in my_users %}
+      <li class="user-item">
+          <span>{{ u.username }}</span>
+          <span class="status-online">{{ u.duration }}</span>
+      </li>
+      {% else %}
+      <li style="color: #888; font-style: italic;">No active users.</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+</section>
+
+<div id="userModal" class="modal">
+  <div class="modal-content">
+    <h3>Create New Account</h3>
+    <p>Add a new Manager or User to the system.</p>
+    
+    <input id="new_user" placeholder="Username">
+    <input id="new_pass" type="password" placeholder="Password">
+    
+    <select id="new_role">
+        <option value="user">User</option>
+        {% if role == 'admin' %}
+        <option value="manager">Manager</option>
+        {% endif %}
+    </select>
+    
+    <div class="modal-btns">
+      <button class="btn-create" onclick="createUser()">Create</button>
+      <button class="btn-cancel" onclick="closeUserModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="hubModal" class="modal">
+  <div class="modal-content">
+    <h3>Add New Hub</h3>
+    <p>Enter the name for the new location.</p>
+    
+    <input id="new_hub_name" placeholder="E.g., City Center, North Bridge">
+    
+    <div class="modal-btns">
+      <button class="btn-create" onclick="submitNewHub()">Add Hub</button>
+      <button class="btn-cancel" onclick="closeHubModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script src="/static/dashboard.js"></script>
+</body>
+</html>

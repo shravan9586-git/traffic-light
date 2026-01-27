@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ hub_name }} - Traffic Vision</title>
+  <link rel="stylesheet" href="/static/hub.css">
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <a href="/" class="back-btn">← Back</a>
+    <h2>{{ hub_name }}</h2>
+  </div>
+
+  <div class="menu-container">
+    <select class="mode-select" onchange="setMode(this.value)">
+      <option value="manual" {% if global_mode == 'manual' %}selected{% endif %}>MANUAL</option>
+      <option value="auto" {% if global_mode == 'auto' %}selected{% endif %}>AUTO</option>
+    </select>
+    
+    <button class="menu-btn" onclick="toggleMenu()">☰ Menu</button>
+    
+    <div id="myDropdown" class="dropdown-content">
+      <div class="menu-item info">Logged in as: <b>{{ role }}</b></div>
+      <hr>
+      <button class="menu-item" onclick="toggleTheme()">🌓 Switch Theme</button>
+      <a href="/logout" class="menu-item logout">🚪 Logout</a>
+    </div>
+  </div>
+</header>
+
+<section class="layout">
+  
+  <div class="grid">
+    {% for id, cam in cameras.items() %}
+    <div class="card {{ cam.light }}" data-cid="{{ id }}">
+      <div class="card-header">
+        <h3>{{ cam.name }}</h3>
+        <span class="status-dot {{ cam.light }}"></span>
+      </div>
+      
+      <div class="video-container">
+        <img src="/video/{{ id }}" onerror="this.src='https://via.placeholder.com/300x180?text=No+Signal'">
+      </div>
+
+      <div class="card-stats">
+        <span>🚗 Vehicles: <b>{{ cam.vehicles }}</b></span>
+        <span>🚦 Light: <b class="light-text">{{ cam.light|upper }}</b></span>
+      </div>
+
+      <div class="actions">
+        <button class="green-btn" onclick="setGreen('{{ id }}')">Set GREEN</button>
+        <button class="edit-btn" onclick="openEditModal('{{ id }}', '{{ cam.name }}', '{{ cam.ip }}')">⚙️ Settings</button>
+      </div>
+    </div>
+    {% endfor %}
+
+    <div class="card add-card" onclick="openAddCamera()">
+      <div class="plus-icon">+</div>
+      <p>Add Camera</p>
+    </div>
+  </div>
+
+</section>
+
+<div id="addCameraModal" class="modal">
+  <div class="modal-content">
+    <h3>Add New Camera</h3>
+    <input id="camName" placeholder="Road Name (e.g. Main Street)">
+    <input id="camPath" placeholder="Video Path or IP URL">
+    <input type="hidden" id="currentHubId" value="{{ hub_id }}">
+    
+    <div class="modal-btns">
+      <button class="btn-create" onclick="saveCamera()">Add Camera</button>
+      <button class="btn-cancel" onclick="closeAddCamera()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="editCameraModal" class="modal">
+  <div class="modal-content">
+    <h3>Camera Settings</h3>
+    <input type="hidden" id="editCamId">
+    <label>Road Name:</label>
+    <input id="editCamName">
+    <label>Video Path:</label>
+    <input id="editCamPath">
+    
+    <div class="modal-btns">
+      <button class="btn-create" onclick="saveEditCamera()">Save Changes</button>
+      <button class="btn-cancel" onclick="closeEditModal()">Cancel</button>
+    </div>
+
+    <hr style="margin: 20px 0; border-color: #eee;">
+    <button onclick="confirmDelete()" class="delete-full-btn">🗑️ Delete Camera</button>
+  </div>
+</div>
+
+<script src="/static/hub.js"></script>
+</body>
+</html>
