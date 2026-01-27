@@ -115,3 +115,50 @@ window.onclick = function(event) {
     }
   }
 }
+
+// ==========================================
+// CHANGE PASSWORD LOGIC
+// ==========================================
+function openPasswordModal() {
+  // Menu band karo
+  document.getElementById("myDropdown").classList.remove("show");
+  // Modal kholo
+  document.getElementById("passwordModal").style.display = "flex";
+}
+
+function closePasswordModal() {
+  document.getElementById("passwordModal").style.display = "none";
+  // Fields clear kar do
+  document.getElementById("oldPass").value = "";
+  document.getElementById("newPass").value = "";
+}
+
+function submitPasswordChange() {
+  const oldPass = document.getElementById("oldPass").value;
+  const newPass = document.getElementById("newPass").value;
+
+  if (!oldPass || !newPass) {
+    alert("Please fill both fields");
+    return;
+  }
+
+  fetch("/change_password", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ old_password: oldPass, new_password: newPass })
+  })
+  .then(res => res.json())
+  .then(data => {
+    if (data.success) {
+      alert("Password Updated Successfully!");
+      closePasswordModal();
+    } else {
+      alert("Error: " + data.error);
+    }
+  })
+  .catch(err => console.error(err));
+}
+
+// Window click listener me bhi add karein taaki bahar click karne par band ho
+// (Jo purana window.onclick hai, usme ye line add kar sakte hain):
+// if (event.target == document.getElementById("passwordModal")) closePasswordModal();

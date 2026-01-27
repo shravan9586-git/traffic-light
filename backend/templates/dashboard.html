@@ -19,6 +19,7 @@
       {% if role in ['admin', 'manager'] %}
       <button class="menu-item" onclick="openUserModal()">👤 Create New User</button>
       {% endif %}
+      <button class="menu-item" onclick="openPasswordModal()">🔑 Change Password</button>
 
       <button class="menu-item" onclick="toggleTheme()">🌓 Switch Theme</button>
       <a href="/logout" class="menu-item logout">🚪 Logout</a>
@@ -109,6 +110,23 @@
     <div class="modal-btns">
       <button class="btn-create" onclick="submitNewHub()">Add Hub</button>
       <button class="btn-cancel" onclick="closeHubModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div id="passwordModal" class="modal">
+  <div class="modal-content">
+    <h3>Change Password</h3>
+    
+    <label>Old Password:</label>
+    <input type="password" id="oldPass" placeholder="Enter current password">
+    
+    <label>New Password:</label>
+    <input type="password" id="newPass" placeholder="Enter new password">
+    
+    <div class="modal-btns">
+      <button class="btn-create" onclick="submitPasswordChange()">Update</button>
+      <button class="btn-cancel" onclick="closePasswordModal()">Cancel</button>
     </div>
   </div>
 </div>
